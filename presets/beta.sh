@@ -2,7 +2,8 @@
 export DISTRO_NAME="HoloISO"
 export OS_CODENAME="Beta"
 export OS_FS_PREFIX="holo"
-export RELEASETAG=snapshot$(date +%Y%m%d.%H%M)
+export RELEASETAG=snapshot$(date +%Y%m%d.%H%M.%S)
+echo -e ${RELEASETAG} > /tmp/builder-releasetag
 echo -e "$(echo ${DISTRO_NAME} | tr '[:upper:]' '[:lower:]')_$(echo ${OS_CODENAME} | tr '[:upper:]' '[:lower:]')_${RELEASETAG}" > /tmp/build_temp_ver
 export FLAVOR_BUILDVER=$(cat /tmp/build_temp_ver)
 export IMAGEFILE="${FLAVOR_BUILDVER}.img.zst"

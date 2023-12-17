@@ -121,7 +121,7 @@ echo -e $OS_RELEASE > ${ROOT_WORKDIR}/etc/os-release
 echo -e $HOLOISO_RELEASE > ${ROOT_WORKDIR}/etc/holoiso-release
 if [[ -d "${SCRIPTPATH}/postcopy" ]]; then
 	cp -r ${SCRIPTPATH}/postcopy/* ${ROOT_WORKDIR}
-	arch-chroot ${ROOT_WORKDIR} systemctl enable steamos-offload.target etc.mount opt.mount root.mount srv.mount usr-lib-debug.mount usr-local.mount var-cache-pacman.mount var-lib-docker.mount var-lib-flatpak.mount var-lib-systemd-coredump.mount var-log.mount var-tmp.mount powerbutton-chmod
+	arch-chroot ${ROOT_WORKDIR} systemctl enable holoiso-create-overlays steamos-offload.target etc.mount opt.mount root.mount srv.mount usr-lib-debug.mount usr-local.mount var-cache-pacman.mount var-lib-docker.mount var-lib-flatpak.mount var-lib-systemd-coredump.mount var-log.mount var-tmp.mount powerbutton-chmod
 fi
 arch-chroot ${ROOT_WORKDIR} systemctl enable sddm bluetooth sshd systemd-timesync NetworkManager
 # Cleanup

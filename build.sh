@@ -133,7 +133,7 @@ btrfs subvolume snapshot -r ${ROOT_WORKDIR} ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root
 btrfs send -f ${WORKDIR}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_BUILDVER}
 umount -l ${ROOT_WORKDIR} && umount -l ${WORKDIR}/work.img && rm -rf ${ROOT_WORKDIR} ${WORKDIR}/work.img
 echo "Compressing image..."
-tar -c -I'xz -8 -T4' -f ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.tar.xz -C ${WORKDIR}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img
+tar -c --transform 's#.*/\([^/]*\.img\)#\1#' -I'xz -8 -T4' -f ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.tar.xz -C ${WORKDIR} ${FLAVOR_FINAL_DISTRIB_IMAGE}.img
 rm -rf ${FLAVOR_FINAL_DISTRIB_IMAGE}.img
 chown 1000:1000 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.tar.xz
 chmod 777 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.tar.xz

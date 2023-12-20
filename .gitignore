@@ -1,2 +1,4 @@
 *.img.tar.xz
 *.img
+postcopy
+postcopy/*

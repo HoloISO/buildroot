@@ -44,14 +44,7 @@ case $key in
 	shift
 	;;
     --add-release)
-	ADDRELEASE="$2"
-    if [[ "${ADDRELEASE}" == "true" ]]; then
-        ADDRELEASE_CHECK="1"
-    elif [[ "${ADDRELEASE}" == "false" ]]; then
-        ADDRELEASE_CHECK="0"
-    else
-        echo "Unknown option for --add-release, options: [true:false]"
-    fi
+	IS_HOME_BUILD=true
 	shift
 	shift
 	;;
@@ -133,7 +126,15 @@ btrfs subvolume snapshot -r ${ROOT_WORKDIR} ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root
 btrfs send -f ${WORKDIR}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_BUILDVER}
 umount -l ${ROOT_WORKDIR} && umount -l ${WORKDIR}/work.img && rm -rf ${ROOT_WORKDIR} ${WORKDIR}/work.img
 echo "Compressing image..."
-tar -c --transform 's#.*/\([^/]*\.img\)#\1#' -I'xz -8 -T4' -f ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.tar.xz -C ${WORKDIR} ${FLAVOR_FINAL_DISTRIB_IMAGE}.img
+zstd --ultra -z ${WORKDIR}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img -o ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
 rm -rf ${FLAVOR_FINAL_DISTRIB_IMAGE}.img
-chown 1000:1000 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.tar.xz
-chmod 777 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.tar.xz
+chown 1000:1000 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
+chmod 777 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
+
+if [[ "${IS_HOME_BUILD}" == "true" ]]; then
+	echo -e ${UPDATE_METADATA} > ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.releasemeta
+	echo -e ${UPDATE_METADATA} > ${OUTPUT}/latest_${BUILD_FLAVOR_MANIFEST_ID}.releasemeta
+	sha256sum ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst | awk '{print $1'} > ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.sha256
+	chown 1000:1000 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.sha256 ${OUTPUT}/latest_${BUILD_FLAVOR_MANIFEST_ID}.releasemeta
+	chmod 777 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.sha256 ${OUTPUT}/latest_${BUILD_FLAVOR_MANIFEST_ID}.releasemeta
+fi

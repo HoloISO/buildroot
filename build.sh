@@ -110,6 +110,8 @@ sed -i 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/g' ${ROOT_WORKDIR}
 
 echo "(3/7) Bootstrapping HoloISO core root"
 pacstrap -C ${PACCFG} ${ROOT_WORKDIR} ${UI_BOOTSTRAP}
+rm ${ROOT_WORKDIR}/etc/pacman.conf
+cp ${PACCFG} ${ROOT_WORKDIR}/etc/pacman.conf
 echo -e $OS_RELEASE > ${ROOT_WORKDIR}/etc/os-release
 echo -e $HOLOISO_RELEASE > ${ROOT_WORKDIR}/etc/holoiso-release
 echo -e "holoiso" > ${ROOT_WORKDIR}/etc/hostname
@@ -118,8 +120,14 @@ if [[ -d "${SCRIPTPATH}/postcopy" ]]; then
 	echo "Copying production postcopy items..."
 	cp -r ${SCRIPTPATH}/postcopy/* ${ROOT_WORKDIR}
 	rm ${ROOT_WORKDIR}/upstream.sh
-	arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS} holoiso-create-overlays steamos-offload.target etc.mount opt.mount root.mount srv.mount usr-lib-debug.mount usr-local.mount var-cache-pacman.mount var-lib-docker.mount var-lib-flatpak.mount var-lib-systemd-coredump.mount var-log.mount var-tmp.mount powerbutton-chmod
+	if [[ -n "$FLAVOR_PLYMOUTH_THEME" ]]; then
+		echo "Setting $FLAVOR_PLYMOUTH_THEME theme for plymouth bootsplash..."
+		arch-chroot ${ROOT_WORKDIR} plymouth-set-default-theme -R $FLAVOR_PLYMOUTH_THEME
+	fi
+	echo -e "[Unit]\nDescription=HoloISO onload - /var/lib/pacman\n\n[Mount]\nWhat=/holo_root/rootfs/${FLAVOR_FINAL_DISTRIB_IMAGE}/var/lib/pacman\nWhere=/var/lib/pacman\nType=none\nOptions=bind\n\n[Install]\nWantedBy=steamos-offload.target" > /usr/lib/systemd/system/var-lib-pacman.mount
+	arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS} steamos-offload.target var-lib-pacman.mount etc.mount opt.mount root.mount srv.mount usr-lib-debug.mount usr-local.mount var-cache-pacman.mount var-lib-docker.mount var-lib-flatpak.mount var-lib-systemd-coredump.mount var-log.mount var-tmp.mount powerbutton-chmod
 fi
+
 # Cleanup
 umount -l ${ROOT_WORKDIR}/var/cache/pacman/pkg/
 

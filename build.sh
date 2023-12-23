@@ -2,7 +2,6 @@
 
 SCRIPT=$(realpath "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
-PACCFG=${SCRIPTPATH}/pacman-build.conf
 
 if [ $EUID -ne 0 ]; then
 	echo "$(basename $0) must be ran as superuser or sudo"
@@ -54,6 +53,8 @@ case $key in
     ;;
 esac
 done
+
+PACCFG=${SCRIPTPATH}/pacman-build-${BUILD_FLAVOR_MANIFEST_ID}.conf
 
 # Check if everything is set.
 if [[ -z "{$BUILD_FLAVOR_MANIFEST}" ]]; then
@@ -124,7 +125,10 @@ if [[ -d "${SCRIPTPATH}/postcopy" ]]; then
 		echo "Setting $FLAVOR_PLYMOUTH_THEME theme for plymouth bootsplash..."
 		arch-chroot ${ROOT_WORKDIR} plymouth-set-default-theme -R $FLAVOR_PLYMOUTH_THEME
 	fi
-	echo -e "[Unit]\nDescription=HoloISO onload - /var/lib/pacman\n\n[Mount]\nWhat=/holo_root/rootfs/${FLAVOR_FINAL_DISTRIB_IMAGE}/var/lib/pacman\nWhere=/var/lib/pacman\nType=none\nOptions=bind\n\n[Install]\nWantedBy=steamos-offload.target" > /usr/lib/systemd/system/var-lib-pacman.mount
+	arch-chroot ${ROOT_WORKDIR} setuphandycon
+	arch-chroot ${ROOT_WORKDIR} setupaynplatform
+	rm -rf ${ROOT_WORKDIR}/usr/bin/setuphandycon ${ROOT_WORKDIR}/usr/bin/setupaynplatform
+	echo -e "[Unit]\nDescription=HoloISO onload - /var/lib/pacman\n\n[Mount]\nWhat=/holo_root/rootfs/${FLAVOR_FINAL_DISTRIB_IMAGE}/var/lib/pacman\nWhere=/var/lib/pacman\nType=none\nOptions=bind\n\n[Install]\nWantedBy=steamos-offload.target" > ${ROOT_WORKDIR}/usr/lib/systemd/system/var-lib-pacman.mount
 	arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS} steamos-offload.target var-lib-pacman.mount etc.mount opt.mount root.mount srv.mount usr-lib-debug.mount usr-local.mount var-cache-pacman.mount var-lib-docker.mount var-lib-flatpak.mount var-lib-systemd-coredump.mount var-log.mount var-tmp.mount powerbutton-chmod
 fi
 

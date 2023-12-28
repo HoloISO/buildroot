@@ -102,7 +102,7 @@ echo "(2/7) Generating fstab..."
 # fstab
 echo "
 LABEL=${OS_FS_PREFIX}_root /          btrfs subvol=rootfs/${FLAVOR_BUILDVER},compress-force=zstd:1,discard,noatime,nodiratime 0 0
-LABEL=${OS_FS_PREFIX}_root /${OS_FS_PREFIX}_root btrfs rw,noatime,nodatacow 0 0
+LABEL=${OS_FS_PREFIX}_root /${OS_FS_PREFIX}_root btrfs rw,compress-force=zstd:1,discard,noatime,nodiratime,nodatacow 0 0
 LABEL=${OS_FS_PREFIX}_var /var       ext4 rw,relatime 0 0
 LABEL=${OS_FS_PREFIX}_home /home      ext4 rw,relatime 0 0
 " > ${ROOT_WORKDIR}/etc/fstab
@@ -126,8 +126,7 @@ if [[ -d "${SCRIPTPATH}/postcopy" ]]; then
 		arch-chroot ${ROOT_WORKDIR} plymouth-set-default-theme -R $FLAVOR_PLYMOUTH_THEME
 	fi
 	arch-chroot ${ROOT_WORKDIR} setuphandycon
-	arch-chroot ${ROOT_WORKDIR} setupaynplatform
-	rm -rf ${ROOT_WORKDIR}/usr/bin/setuphandycon ${ROOT_WORKDIR}/usr/bin/setupaynplatform
+	rm -rf ${ROOT_WORKDIR}/usr/bin/setuphandycon
 	echo -e "[Unit]\nDescription=HoloISO onload - /var/lib/pacman\n\n[Mount]\nWhat=/holo_root/rootfs/${FLAVOR_FINAL_DISTRIB_IMAGE}/var/lib/pacman\nWhere=/var/lib/pacman\nType=none\nOptions=bind\n\n[Install]\nWantedBy=steamos-offload.target" > ${ROOT_WORKDIR}/usr/lib/systemd/system/var-lib-pacman.mount
 	arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS} steamos-offload.target var-lib-pacman.mount etc.mount opt.mount root.mount srv.mount usr-lib-debug.mount usr-local.mount var-cache-pacman.mount var-lib-docker.mount var-lib-flatpak.mount var-lib-systemd-coredump.mount var-log.mount var-tmp.mount powerbutton-chmod
 fi

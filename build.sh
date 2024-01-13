@@ -54,8 +54,6 @@ case $key in
 esac
 done
 
-PACCFG=${SCRIPTPATH}/pacman-build-${BUILD_FLAVOR_MANIFEST_ID}.conf
-
 # Check if everything is set.
 if [[ -z "{$BUILD_FLAVOR_MANIFEST}" ]]; then
 	echo "Build flavor was not set. Aborting."
@@ -71,7 +69,11 @@ if [[ -z "${WORKDIR}" ]]; then
 fi
 
 source $BUILD_FLAVOR_MANIFEST
-
+if [[ "${BUILD_FLAVOR_MANIFEST_ID}" =~ "dev" ]]; then
+	PACCFG=${SCRIPTPATH}/pacman-build-${OS_UPDATER_BRANCH}.conf
+else
+	PACCFG=${SCRIPTPATH}/pacman-build-${BUILD_FLAVOR_MANIFEST_ID}.conf
+fi
 
 ROOT_WORKDIR=${WORKDIR}/rootfs_mnt
 echo "Preparing to create deployment image..."
@@ -115,6 +117,9 @@ rm ${ROOT_WORKDIR}/etc/pacman.conf
 cp ${PACCFG} ${ROOT_WORKDIR}/etc/pacman.conf
 echo -e $OS_RELEASE > ${ROOT_WORKDIR}/etc/os-release
 echo -e $HOLOISO_RELEASE > ${ROOT_WORKDIR}/etc/holoiso-release
+if [[ "${BUILD_FLAVOR_MANIFEST_ID}" =~ "dev" ]]; then
+	echo -e "ADDITIONAL_BRANCH_OVERRIDE=${OS_UPDATER_BRANCH}" >> ${ROOT_WORKDIR}/etc/holoiso-release
+fi
 echo -e "holoiso" > ${ROOT_WORKDIR}/etc/hostname
 arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS}
 if [[ -d "${SCRIPTPATH}/postcopy" ]]; then

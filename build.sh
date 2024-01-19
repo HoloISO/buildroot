@@ -75,6 +75,7 @@ else
 	PACCFG=${SCRIPTPATH}/pacman-build-${BUILD_FLAVOR_MANIFEST_ID}.conf
 fi
 
+
 ROOT_WORKDIR=${WORKDIR}/rootfs_mnt
 echo "Preparing to create deployment image..."
 # Pre-build cleanup
@@ -131,7 +132,10 @@ if [[ -d "${SCRIPTPATH}/postcopy" ]]; then
 		arch-chroot ${ROOT_WORKDIR} plymouth-set-default-theme -R $FLAVOR_PLYMOUTH_THEME
 	fi
 	arch-chroot ${ROOT_WORKDIR} setuphandycon
+	arch-chroot ${ROOT_WORKDIR} add_additional_pkgs
+	arch-chroot ${ROOT_WORKDIR} setcap 'cap_sys_nice=eip' /usr/bin/gamescope-nvidia
 	rm -rf ${ROOT_WORKDIR}/usr/bin/setuphandycon
+	rm -rf ${ROOT_WORKDIR}/usr/bin/add_additional_pkgs
 	echo -e "[Unit]\nDescription=HoloISO onload - /var/lib/pacman\n\n[Mount]\nWhat=/holo_root/rootfs/${FLAVOR_FINAL_DISTRIB_IMAGE}/var/lib/pacman\nWhere=/var/lib/pacman\nType=none\nOptions=bind\n\n[Install]\nWantedBy=steamos-offload.target" > ${ROOT_WORKDIR}/usr/lib/systemd/system/var-lib-pacman.mount
 	arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS} steamos-offload.target var-lib-pacman.mount etc.mount opt.mount root.mount srv.mount usr-lib-debug.mount usr-local.mount var-cache-pacman.mount var-lib-docker.mount var-lib-flatpak.mount var-lib-systemd-coredump.mount var-log.mount var-tmp.mount powerbutton-chmod
 fi

@@ -15,6 +15,11 @@ case $key in
 	--flavor)
 	BUILD_FLAVOR_MANIFEST="${SCRIPTPATH}/presets/$2.sh"
 	BUILD_FLAVOR_MANIFEST_ID="$2"
+	POSTCOPY_DIR="$2"
+	if [[ "${BUILD_FLAVOR_MANIFEST_ID}" =~ "dev" ]]; then
+		BUILD_FLAVOR_MANIFEST_ID=$(echo $2 | cut -d '-' -f 1)
+		BRANCH_OVERRIDES=$(echo $2 | cut -d '-' -f 2)
+	fi
 	shift
 	shift
 	;;
@@ -38,6 +43,9 @@ case $key in
 		OUTPUT=${WORKDIR}
 	else
 		OUTPUT="$2"
+		if [[ -n "${BRANCH_OVERRIDES}" ]]; then
+			OUTPUT="$2/${BRANCH_OVERRIDES}"
+		fi
 	fi
 	shift
 	shift
@@ -69,11 +77,7 @@ if [[ -z "${WORKDIR}" ]]; then
 fi
 
 source $BUILD_FLAVOR_MANIFEST
-if [[ "${BUILD_FLAVOR_MANIFEST_ID}" =~ "dev" ]]; then
-	PACCFG=${SCRIPTPATH}/pacman-build-${OS_UPDATER_BRANCH}.conf
-else
-	PACCFG=${SCRIPTPATH}/pacman-build-${BUILD_FLAVOR_MANIFEST_ID}.conf
-fi
+PACCFG=${SCRIPTPATH}/pacman-build-${BUILD_FLAVOR_MANIFEST_ID}.conf
 
 
 ROOT_WORKDIR=${WORKDIR}/rootfs_mnt
@@ -118,14 +122,11 @@ rm ${ROOT_WORKDIR}/etc/pacman.conf
 cp ${PACCFG} ${ROOT_WORKDIR}/etc/pacman.conf
 echo -e $OS_RELEASE > ${ROOT_WORKDIR}/etc/os-release
 echo -e $HOLOISO_RELEASE > ${ROOT_WORKDIR}/etc/holoiso-release
-if [[ "${BUILD_FLAVOR_MANIFEST_ID}" =~ "dev" ]]; then
-	echo -e "ADDITIONAL_BRANCH_OVERRIDE=${OS_UPDATER_BRANCH}" >> ${ROOT_WORKDIR}/etc/holoiso-release
-fi
 echo -e "holoiso" > ${ROOT_WORKDIR}/etc/hostname
 arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS}
-if [[ -d "${SCRIPTPATH}/postcopy" ]]; then
+if [[ -d "${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}" ]]; then
 	echo "Copying production postcopy items..."
-	cp -r ${SCRIPTPATH}/postcopy/* ${ROOT_WORKDIR}
+	cp -r ${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}/* ${ROOT_WORKDIR}
 	rm ${ROOT_WORKDIR}/upstream.sh
 	if [[ -n "$FLAVOR_PLYMOUTH_THEME" ]]; then
 		echo "Setting $FLAVOR_PLYMOUTH_THEME theme for plymouth bootsplash..."
@@ -133,7 +134,6 @@ if [[ -d "${SCRIPTPATH}/postcopy" ]]; then
 	fi
 	arch-chroot ${ROOT_WORKDIR} setuphandycon
 	arch-chroot ${ROOT_WORKDIR} add_additional_pkgs
-	arch-chroot ${ROOT_WORKDIR} setcap 'cap_sys_nice=eip' /usr/bin/gamescope-nvidia
 	rm -rf ${ROOT_WORKDIR}/usr/bin/setuphandycon
 	rm -rf ${ROOT_WORKDIR}/usr/bin/add_additional_pkgs
 	echo -e "[Unit]\nDescription=HoloISO onload - /var/lib/pacman\n\n[Mount]\nWhat=/holo_root/rootfs/${FLAVOR_FINAL_DISTRIB_IMAGE}/var/lib/pacman\nWhere=/var/lib/pacman\nType=none\nOptions=bind\n\n[Install]\nWantedBy=steamos-offload.target" > ${ROOT_WORKDIR}/usr/lib/systemd/system/var-lib-pacman.mount

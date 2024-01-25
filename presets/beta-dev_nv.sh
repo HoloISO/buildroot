@@ -6,7 +6,7 @@ export OS_CODENAME="Beta"
 export OS_FS_PREFIX="holo"
 export RELEASETAG=snapshot$(date +%Y%m%d.%H%M.%S)
 echo -e ${RELEASETAG} > /tmp/builder-releasetag
-echo -e "$(echo ${DISTRO_NAME} | tr '[:upper:]' '[:lower:]')-dev_nv-$(echo ${OS_CODENAME} | tr '[:upper:]' '[:lower:]')_${RELEASETAG}" > /tmp/build_temp_ver
+echo -e "$(echo ${DISTRO_NAME} | tr '[:upper:]' '[:lower:]')_$(echo ${OS_CODENAME} | tr '[:upper:]' '[:lower:]')_${RELEASETAG}-dev_nv" > /tmp/build_temp_ver
 export FLAVOR_BUILDVER=$(cat /tmp/build_temp_ver)
 export IMAGEFILE="${FLAVOR_BUILDVER}"
 export FLAVOR_CHROOT_SCRIPTS="sddm bluetooth sshd systemd-timesyncd NetworkManager"

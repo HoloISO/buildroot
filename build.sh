@@ -52,6 +52,25 @@ case $key in
 	;;
     --add-release)
 	IS_HOME_BUILD=true
+	if [[ ! "${OUTPUT}" =~ "holoiso-images" ]]; then
+		echo "Specific output directories should be preceeded with holoiso-images for release images."
+		exit 255
+	fi
+	shift
+	shift
+	;;
+    --rclone_path)
+	RC_PATH="$2"
+	shift
+	shift
+	;;
+	--rclone_root)
+	if [[ -n "${RC_PATH}" ]]; then
+		RC_ROOT="$2"
+	else
+		echo "rclone root can be used only with --rclone_path"
+		exit 255
+	fi
 	shift
 	shift
 	;;
@@ -128,6 +147,7 @@ if [[ -d "${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}" ]]; then
 	echo "Copying production postcopy items..."
 	cp -r ${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}/* ${ROOT_WORKDIR}
 	rm ${ROOT_WORKDIR}/upstream.sh
+	mkdir ${ROOT_WORKDIR}/nix
 	if [[ -n "$FLAVOR_PLYMOUTH_THEME" ]]; then
 		echo "Setting $FLAVOR_PLYMOUTH_THEME theme for plymouth bootsplash..."
 		arch-chroot ${ROOT_WORKDIR} plymouth-set-default-theme -R $FLAVOR_PLYMOUTH_THEME
@@ -137,7 +157,7 @@ if [[ -d "${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}" ]]; then
 	rm -rf ${ROOT_WORKDIR}/usr/bin/setuphandycon
 	rm -rf ${ROOT_WORKDIR}/usr/bin/add_additional_pkgs
 	echo -e "[Unit]\nDescription=HoloISO onload - /var/lib/pacman\n\n[Mount]\nWhat=/holo_root/rootfs/${FLAVOR_FINAL_DISTRIB_IMAGE}/var/lib/pacman\nWhere=/var/lib/pacman\nType=none\nOptions=bind\n\n[Install]\nWantedBy=steamos-offload.target" > ${ROOT_WORKDIR}/usr/lib/systemd/system/var-lib-pacman.mount
-	arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS} steamos-offload.target var-lib-pacman.mount etc.mount opt.mount root.mount srv.mount usr-lib-debug.mount usr-local.mount var-cache-pacman.mount var-lib-docker.mount var-lib-flatpak.mount var-lib-systemd-coredump.mount var-log.mount var-tmp.mount powerbutton-chmod
+	arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS} steamos-offload.target var-lib-pacman.mount nix.mount opt.mount root.mount srv.mount usr-lib-debug.mount usr-local.mount var-cache-pacman.mount var-lib-docker.mount var-lib-flatpak.mount var-lib-systemd-coredump.mount var-log.mount var-tmp.mount powerbutton-chmod
 fi
 
 # Cleanup
@@ -160,4 +180,10 @@ if [[ "${IS_HOME_BUILD}" == "true" ]]; then
 	sha256sum ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst | awk '{print $1'} > ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.sha256
 	chown 1000:1000 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.sha256 ${OUTPUT}/latest_${BUILD_FLAVOR_MANIFEST_ID}.releasemeta
 	chmod 777 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.sha256 ${OUTPUT}/latest_${BUILD_FLAVOR_MANIFEST_ID}.releasemeta
+	if [[ -n "${RC_PATH}" ]]; then
+		rclone mkdir ${RC_PATH}:/download/$(echo ${OUTPUT} | sed 's#.*holoiso#holoiso#g')
+		rclone copy ${OUTPUT}/latest_${BUILD_FLAVOR_MANIFEST_ID}.releasemeta ${RC_PATH}:/download/$(echo ${OUTPUT} | sed 's#.*holoiso#holoiso#g') -L --progress
+		rclone copy ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.sha256 ${RC_PATH}:/${RC_ROOT}/$(echo ${OUTPUT} | sed 's#.*holoiso#holoiso#g') -L --progress
+		rclone copy ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst ${RC_PATH}:/${RC_ROOT}/$(echo ${OUTPUT} | sed 's#.*holoiso#holoiso#g') -L --progress
+	fi
 fi

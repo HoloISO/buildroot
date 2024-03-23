@@ -166,11 +166,11 @@ umount -l ${ROOT_WORKDIR}/var/cache/pacman/pkg/
 # Finish for now
 echo "Packaging snapshot..."
 btrfs subvolume snapshot -r ${ROOT_WORKDIR} ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_BUILDVER}
-btrfs send -f ${WORKDIR}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_BUILDVER}
-umount -l ${ROOT_WORKDIR} && umount -l ${WORKDIR}/work.img && rm -rf ${ROOT_WORKDIR} ${WORKDIR}/work.img
+btrfs send -f ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_BUILDVER}
+umount -l ${ROOT_WORKDIR} && umount -l ${WORKDIR}/work.img && rm -rf ${WORKDIR}
 echo "Compressing image..."
-zstd --ultra -z ${WORKDIR}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img -o ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
-rm -rf ${FLAVOR_FINAL_DISTRIB_IMAGE}.img
+zstd --ultra -z ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img -o ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
+rm -rf ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img
 chown 1000:1000 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
 chmod 777 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
 

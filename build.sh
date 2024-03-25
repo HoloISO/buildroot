@@ -97,6 +97,7 @@ fi
 
 source $BUILD_FLAVOR_MANIFEST
 PACCFG=${SCRIPTPATH}/pacman-build-${BUILD_FLAVOR_MANIFEST_ID}.conf
+PACCFG_HWSUPPORT=${SCRIPTPATH}/pacman-hwsupport-${BUILD_FLAVOR_MANIFEST_ID}.conf
 
 
 ROOT_WORKDIR=${WORKDIR}/rootfs_mnt
@@ -121,7 +122,9 @@ echo "(1/7) Bootstrapping main filesystem"
 mkdir -p ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs
 mkdir -p ${ROOT_WORKDIR}/var/cache/pacman/pkg
 mount --bind /var/cache/pacman/pkg/ ${ROOT_WORKDIR}/var/cache/pacman/pkg
-pacstrap -C ${PACCFG} ${ROOT_WORKDIR} ${BASE_BOOTSTRAP_PKGS} ${KERNELCHOICE} ${KERNELCHOICE}-headers
+pacstrap -C ${PACCFG} ${ROOT_WORKDIR} ${BASE_BOOTSTRAP_PKGS}
+echo "(1.5/7) Bootstrapping kernel..."
+pacstrap -C ${PACCFG_HWSUPPORT} ${ROOT_WORKDIR} ${KERNELCHOICE} ${KERNELCHOICE}-headers
 
 echo "(2/7) Generating fstab..."
 

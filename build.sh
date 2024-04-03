@@ -74,6 +74,15 @@ case $key in
 	shift
 	shift
 	;;
+    --donotcompress)
+	NO_COMPRESS="1"
+	if [[ "${IS_HOME_BUILD}" == "true" ]]; then
+		echo "Decompressed images are not supported in shipping builds"
+		exit 127
+	fi
+	shift
+	shift
+	;;
 	*)    # unknown option
     echo "Unknown option: $1"
     exit 1
@@ -117,65 +126,64 @@ mkfs.btrfs ${WORKDIR}/work.img
 mkdir -p ${WORKDIR}/rootfs_mnt
 mount -t btrfs -o loop,compress-force=zstd:1,discard,noatime,nodiratime ${WORKDIR}/work.img ${ROOT_WORKDIR}
 
-echo "(1/7) Bootstrapping main filesystem"
+echo "(1/6) Bootstrapping main filesystem"
 # Start by bootstrapping essentials
 mkdir -p ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs
 mkdir -p ${ROOT_WORKDIR}/var/cache/pacman/pkg
 mount --bind /var/cache/pacman/pkg/ ${ROOT_WORKDIR}/var/cache/pacman/pkg
 pacstrap -C ${PACCFG} ${ROOT_WORKDIR} ${BASE_BOOTSTRAP_PKGS}
-echo "(1.5/7) Bootstrapping kernel..."
+echo "(1.5/6) Bootstrapping kernel..."
 pacstrap -C ${PACCFG_HWSUPPORT} ${ROOT_WORKDIR} ${KERNELCHOICE} ${KERNELCHOICE}-headers
 
-echo "(2/7) Generating fstab..."
+echo "(2/6) Generating fstab..."
 
 # fstab
-echo "
-LABEL=${OS_FS_PREFIX}_root /          btrfs subvol=rootfs/${FLAVOR_BUILDVER},compress-force=zstd:1,discard,noatime,nodiratime 0 0
-LABEL=${OS_FS_PREFIX}_root /${OS_FS_PREFIX}_root btrfs rw,compress-force=zstd:1,discard,noatime,nodiratime,nodatacow 0 0
-LABEL=${OS_FS_PREFIX}_var /var       ext4 rw,relatime 0 0
-LABEL=${OS_FS_PREFIX}_home /home      ext4 rw,relatime 0 0
-" > ${ROOT_WORKDIR}/etc/fstab
+echo -e ${FSTAB} > ${ROOT_WORKDIR}/etc/fstab
 
 sed -i 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/g' ${ROOT_WORKDIR}/etc/sudoers
 
-echo "(3/7) Bootstrapping HoloISO core root"
+echo "(3/6) Bootstrapping HoloISO core root"
 pacstrap -C ${PACCFG} ${ROOT_WORKDIR} ${UI_BOOTSTRAP}
 rm ${ROOT_WORKDIR}/etc/pacman.conf
 cp ${PACCFG} ${ROOT_WORKDIR}/etc/pacman.conf
 echo -e $OS_RELEASE > ${ROOT_WORKDIR}/etc/os-release
 echo -e $HOLOISO_RELEASE > ${ROOT_WORKDIR}/etc/holoiso-release
-echo -e "holoiso" > ${ROOT_WORKDIR}/etc/hostname
+echo -e $IMAGE_HOSTNAME > ${ROOT_WORKDIR}/etc/hostname
 arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS}
+echo "(4/6) Copying postcopy items..."
 if [[ -d "${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}" ]]; then
-	echo "Copying production postcopy items..."
 	cp -r ${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}/* ${ROOT_WORKDIR}
 	rm ${ROOT_WORKDIR}/upstream.sh
-	mkdir ${ROOT_WORKDIR}/nix
+	for dirs in ${MKNEWDIR}; do mkdir ${ROOT_WORKDIR}/$dirs; done
 	if [[ -n "$FLAVOR_PLYMOUTH_THEME" ]]; then
 		echo "Setting $FLAVOR_PLYMOUTH_THEME theme for plymouth bootsplash..."
 		arch-chroot ${ROOT_WORKDIR} plymouth-set-default-theme -R $FLAVOR_PLYMOUTH_THEME
 	fi
-	arch-chroot ${ROOT_WORKDIR} setuphandycon
-	arch-chroot ${ROOT_WORKDIR} add_additional_pkgs
-	rm -rf ${ROOT_WORKDIR}/usr/bin/setuphandycon
-	rm -rf ${ROOT_WORKDIR}/usr/bin/add_additional_pkgs
-	echo -e "[Unit]\nDescription=HoloISO onload - /var/lib/pacman\n\n[Mount]\nWhat=/holo_root/rootfs/${FLAVOR_FINAL_DISTRIB_IMAGE}/var/lib/pacman\nWhere=/var/lib/pacman\nType=none\nOptions=bind\n\n[Install]\nWantedBy=steamos-offload.target" > ${ROOT_WORKDIR}/usr/lib/systemd/system/var-lib-pacman.mount
-	arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS} steamos-offload.target var-lib-pacman.mount nix.mount opt.mount root.mount srv.mount usr-lib-debug.mount usr-local.mount var-cache-pacman.mount var-lib-docker.mount var-lib-flatpak.mount var-lib-systemd-coredump.mount var-log.mount var-tmp.mount powerbutton-chmod
+	for binary in ${POSTCOPY_BIN_EXECUTION}; do arch-chroot ${ROOT_WORKDIR} $binary && rm -rf ${ROOT_WORKDIR}/usr/bin/$binary; done
+	echo -e "${PACMAN_ONLOAD}" > ${ROOT_WORKDIR}/usr/lib/systemd/system/var-lib-pacman.mount
+	arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS}
+	echo "(4.5/6) Generating en_US.UTF-8 locale..."
+	sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' ${ROOT_WORKDIR}/etc/locale-gen
+	arch-chroot ${ROOT_WORKDIR} locale-gen
+	arch-chroot ${ROOT_WORKDIR} localectl set-locale LANG=en_US.UTF-8
 fi
 
+echo "(5/6) Stop doing things in container..."
 # Cleanup
 umount -l ${ROOT_WORKDIR}/var/cache/pacman/pkg/
 
 # Finish for now
-echo "Packaging snapshot..."
+echo "(6/6) Packaging snapshot..."
 btrfs subvolume snapshot -r ${ROOT_WORKDIR} ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_BUILDVER}
 btrfs send -f ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_BUILDVER}
 umount -l ${ROOT_WORKDIR} && umount -l ${WORKDIR}/work.img && rm -rf ${WORKDIR} && ${WORKDIR}/work.img
-echo "Compressing image..."
-zstd --ultra -z ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img -o ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
-rm -rf ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img
-chown 1000:1000 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
-chmod 777 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
+if [[ -z "${NO_COMPRESS}" ]]; then
+	echo "Compressing image..."
+	zstd --ultra -z ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img -o ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
+	rm -rf ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img
+	chown 1000:1000 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
+	chmod 777 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
+fi
 
 if [[ "${IS_HOME_BUILD}" == "true" ]]; then
 	echo -e ${UPDATE_METADATA} > ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.releasemeta
@@ -190,3 +198,5 @@ if [[ "${IS_HOME_BUILD}" == "true" ]]; then
 		rclone copy ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst ${RC_PATH}:/${RC_ROOT}/$(echo ${OUTPUT} | sed 's#.*holoiso#holoiso#g') -L --progress
 	fi
 fi
+
+echo "Build complete."

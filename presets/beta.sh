@@ -9,7 +9,7 @@ echo -e ${RELEASETAG} > /tmp/builder-releasetag
 echo -e "$(echo ${DISTRO_NAME} | tr '[:upper:]' '[:lower:]')_$(echo ${OS_CODENAME} | tr '[:upper:]' '[:lower:]')_${RELEASETAG}" > /tmp/build_temp_ver
 export FLAVOR_BUILDVER=$(cat /tmp/build_temp_ver)
 export IMAGEFILE="${FLAVOR_BUILDVER}"
-export FLAVOR_CHROOT_SCRIPTS="sddm bluetooth sshd systemd-timesyncd NetworkManager"
+export FLAVOR_CHROOT_SCRIPTS="sddm bluetooth sshd systemd-timesyncd NetworkManager steamos-offload.target var-lib-pacman.mount nix.mount opt.mount root.mount srv.mount usr-lib-debug.mount usr-local.mount var-cache-pacman.mount var-lib-docker.mount var-lib-flatpak.mount var-lib-systemd-coredump.mount var-log.mount var-tmp.mount powerbutton-chmod"
 export FLAVOR_PLYMOUTH_THEME="steamos"
 export FLAVOR_FINAL_DISTRIB_IMAGE=$FLAVOR_BUILDVER
 export KERNELCHOICE="linux-lljy"
@@ -18,3 +18,8 @@ export UI_BOOTSTRAP="python-build nano vim fuse vi flatpak plymouth python-insta
 export OS_RELEASE="NAME=\"SteamOS\"\nPRETTY_NAME="SteamOS"\nVERSION_CODENAME=holo\nID=steamos\nID_LIKE=arch\nANSI_COLOR=\"1;35\"\nHOME_URL=\"https://www.steampowered.com/\"\nDOCUMENTATION_URL=\"https://github.com/holoiso-staging/\"\nSUPPORT_URL=\"https://github.com/holoiso-staging/faq\"\nBUG_REPORT_URL=\"https://github.com/holoiso-staging/issuetracker\"\nLOGO=steamos\nVERSION_ID=\"${SNAPSHOTVERSION}\"\nVARIANT_ID=\"$(echo ${OS_CODENAME} | tr '[:upper:]' '[:lower:]')\"\nBUILD_ID=\"${RELEASETAG}\""
 export HOLOISO_RELEASE="IMAGE_ID=\"${FLAVOR_BUILDVER}\"\nOS_TAG=${RELEASETAG}\nRELEASETYPE=$(echo ${OS_CODENAME} | tr '[:upper:]' '[:lower:]')\nISINTERNAL=no"
 export UPDATE_METADATA="IMAGEFILE=\"${IMAGEFILE}\"\nSTAGING_OS_TAG=${RELEASETAG}\nSTAGING_RELEASETYPE=$(echo ${OS_CODENAME} | tr '[:upper:]' '[:lower:]')\nSTAGING_ISINTERNAL=no"
+export PACMAN_ONLOAD="[Unit]\nDescription=${DISTRO_NAME} onload - /var/lib/pacman\n\n[Mount]\nWhat=/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_FINAL_DISTRIB_IMAGE}/var/lib/pacman\nWhere=/var/lib/pacman\nType=none\nOptions=bind\n\n[Install]\nWantedBy=steamos-offload.target"
+export MKNEWDIR="nix"
+export FSTAB="\nLABEL=${OS_FS_PREFIX}_root /          btrfs subvol=rootfs/${FLAVOR_BUILDVER},compress-force=zstd:1,discard,noatime,nodiratime 0 0\nLABEL=${OS_FS_PREFIX}_root /${OS_FS_PREFIX}_root btrfs rw,compress-force=zstd:1,discard,noatime,nodiratime,nodatacow 0 0\nLABEL=${OS_FS_PREFIX}_var /var       ext4 rw,relatime 0 0\nLABEL=${OS_FS_PREFIX}_home /home      ext4 rw,relatime 0 0\n"
+export IMAGE_HOSTNAME="holoiso"
+export POSTCOPY_BIN_EXECUTION="setuphandycon add_additional_pkgs"

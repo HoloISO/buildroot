@@ -19,7 +19,7 @@ export OS_RELEASE="NAME=\"SteamOS\"\nPRETTY_NAME="SteamOS"\nVERSION_CODENAME=hol
 export HOLOISO_RELEASE="IMAGE_ID=\"${FLAVOR_BUILDVER}\"\nOS_TAG=${RELEASETAG}\nRELEASETYPE=$(echo ${OS_CODENAME} | tr '[:upper:]' '[:lower:]')\nISINTERNAL=no"
 export UPDATE_METADATA="IMAGEFILE=\"${IMAGEFILE}\"\nSTAGING_OS_TAG=${RELEASETAG}\nSTAGING_RELEASETYPE=$(echo ${OS_CODENAME} | tr '[:upper:]' '[:lower:]')\nSTAGING_ISINTERNAL=no"
 export PACMAN_ONLOAD="[Unit]\nDescription=${DISTRO_NAME} onload - /var/lib/pacman\n\n[Mount]\nWhat=/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_FINAL_DISTRIB_IMAGE}/var/lib/pacman\nWhere=/var/lib/pacman\nType=none\nOptions=bind\n\n[Install]\nWantedBy=steamos-offload.target"
-export MKNEWDIR="nix"
+export MKNEWDIR="/nix"
 export FSTAB="\nLABEL=${OS_FS_PREFIX}_root /          btrfs subvol=rootfs/${FLAVOR_BUILDVER},compress-force=zstd:1,discard,noatime,nodiratime 0 0\nLABEL=${OS_FS_PREFIX}_root /${OS_FS_PREFIX}_root btrfs rw,compress-force=zstd:1,discard,noatime,nodiratime,nodatacow 0 0\nLABEL=${OS_FS_PREFIX}_var /var       ext4 rw,relatime 0 0\nLABEL=${OS_FS_PREFIX}_home /home      ext4 rw,relatime 0 0\n"
 export IMAGE_HOSTNAME="holoiso"
 export POSTCOPY_BIN_EXECUTION="setuphandycon add_additional_pkgs"

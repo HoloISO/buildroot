@@ -154,7 +154,7 @@ echo "(4/6) Copying postcopy items..."
 if [[ -d "${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}" ]]; then
 	cp -r ${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}/* ${ROOT_WORKDIR}
 	rm ${ROOT_WORKDIR}/upstream.sh
-	for dirs in ${MKNEWDIR}; do mkdir ${ROOT_WORKDIR}/$dirs; done
+	for dirs in ${MKNEWDIR}; do mkdir ${ROOT_WORKDIR}$dirs; done
 	if [[ -n "$FLAVOR_PLYMOUTH_THEME" ]]; then
 		echo "Setting $FLAVOR_PLYMOUTH_THEME theme for plymouth bootsplash..."
 		arch-chroot ${ROOT_WORKDIR} plymouth-set-default-theme -R $FLAVOR_PLYMOUTH_THEME

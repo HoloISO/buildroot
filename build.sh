@@ -164,6 +164,7 @@ if [[ -d "${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}" ]]; then
 	arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS}
 	echo "(4.5/6) Generating en_US.UTF-8 locale..."
 	sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' ${ROOT_WORKDIR}/etc/locale.gen
+	echo "/usr/bin/bash" >> ${ROOT_WORKDIR}/etc/shells
 	arch-chroot ${ROOT_WORKDIR} locale-gen
 	arch-chroot ${ROOT_WORKDIR} localectl set-locale LANG=en_US.UTF-8
 fi

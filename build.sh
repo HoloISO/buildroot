@@ -167,6 +167,7 @@ if [[ -d "${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}" ]]; then
 	echo "/usr/bin/bash" >> ${ROOT_WORKDIR}/etc/shells
 	arch-chroot ${ROOT_WORKDIR} locale-gen
 	arch-chroot ${ROOT_WORKDIR} localectl set-locale LANG=en_US.UTF-8
+	arch-chroot ${ROOT_WORKDIR} setcap 'cap_sys_nice=eip' /usr/bin/gamescope-generic
 fi
 
 echo "(5/6) Stop doing things in container..."
